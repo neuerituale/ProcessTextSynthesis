@@ -42,9 +42,8 @@ class ProcessTextSynthesis extends Process implements Module
 
 	public function init(): void {
 
-		$modules = modules();
-
-		if($modules->isInstalled('LazyCron') && $this->cronSchedule) {
+		// run queue via lazy cron (if installed)
+		if(modules()->isInstalled('LazyCron') && $this->cronSchedule) {
 			$hookName = $this->timeFuncs[$this->cronSchedule] ?? false;
 			if($hookName) $this->addHook('LazyCron::' . $hookName, $this, 'runQueue');
 		}
@@ -64,6 +63,10 @@ class ProcessTextSynthesis extends Process implements Module
 
 		// Trigger synthesis
 		$this->addHookAfter('Pages::saveReady', $this, 'hookSynthesisFields');
+
+		// Add trigger action to save menu
+		$this->addHookAfter('ProcessPageEdit::getSubmitActions', $this, 'hookSubmitActionTextSynthesis');
+		$this->addHookAfter('ProcessPageEdit::processSubmitAction', $this, 'hookSubmitActionProcessTextSynthesis');
 	}
 
 	public function ready(): void {
@@ -154,6 +157,69 @@ class ProcessTextSynthesis extends Process implements Module
 		foreach($synthesisFields as $synthesisField) $this->addSynthesisJob($page, $synthesisField);
 	}
 
+	/**
+	 * Add text synthesis action to page save menu
+	 *
+	 * @param HookEvent $event
+	 * @return void
+	 */
+	public function hookSubmitActionTextSynthesis(HookEvent $event): void {
+
+		/** @var Page $page */
+		$page = $event->object->getPage();
+		if(!$page->fields->has('inputfieldClass=' . self::inputfieldClass)) return;
+
+		$actions = is_array($event->return) ? $event->return : [];
+		$actions['runTextSynthesis'] = [
+			'value' => 'runTextSynthesis',
+			'icon' => 'microphone',
+			'label' => __('%s + Text synthesis'),
+		];
+
+		$event->return = $actions;
+	}
+
+	/**
+	 * Process text synthesis action from page save menu
+	 *
+	 * @param HookEvent $event
+	 * @return void
+	 */
+	public function hookSubmitActionProcessTextSynthesis(HookEvent $event): void {
+
+		/** @var Page $page */
+		$page = $event->object->getPage();
+		$action = $event->arguments(0);
+
+		if(!($action === 'runTextSynthesis' && $page->fields->has('inputfieldClass=' . self::inputfieldClass))) return;
+
+		$synthesisFields = $page->fields->find('inputfieldClass=' . self::inputfieldClass);
+		if(!$synthesisFields->count) return;
+		foreach($synthesisFields as $synthesisField) {
+
+			// build request and job
+			$request = $this->buildRequest($page, $synthesisField);
+			$hash = self::hash($page, $synthesisField, $request);
+			$job = (object)[
+				'id' => 0,
+				'pages_id' => $page->id,
+				'field' => $synthesisField->id,
+				'request' => json_encode($request, JSON_UNESCAPED_UNICODE),
+				'hash' => $hash,
+				'completed' => null,
+				'created' => date('y-m-d H:i:s'),
+			];
+
+			if($this->runSynthesisJob($job)) $this->message(sprintf(__('Synthesis done for field “%s”`.'), $synthesisField->get('label|name')));
+		}
+	}
+
+	/**
+	 * Process view
+	 *
+	 * @return array
+	 * @throws WirePermissionException
+	 */
 	public function ___execute(): array {
 		$this->modules->get('JqueryUI')->use('vex');
 		$jobs = $this->findSynthesisJob();
@@ -163,6 +229,12 @@ class ProcessTextSynthesis extends Process implements Module
  		];
 	}
 
+	/**
+	 * Process action run single job
+	 *
+	 * @return void
+	 * @throws WireDatabaseQueryException
+	 */
 	public function ___executeRun(): void {
 		$id = (int) input()->urlSegment2;
 		$job = $this->findSynthesisJobById($id);
@@ -173,6 +245,12 @@ class ProcessTextSynthesis extends Process implements Module
 		$this->session->redirect($this->page->url);
 	}
 
+	/**
+	 * Process action delete single job
+	 *
+	 * @return void
+	 * @throws WireDatabaseQueryException
+	 */
 	public function ___executeDelete(): void {
 		$id = (int) input()->urlSegment2;
 		$job = $this->findSynthesisJobById($id);
@@ -319,11 +397,10 @@ class ProcessTextSynthesis extends Process implements Module
 		$pagefiles = $page->getUnformatted($field->name);
 
 		$request = json_decode($job->request);
-		if(!$request) throw new WireException(__('Cannot encode request.'));
+		if(!$request) throw new WireException(__('Cannot decode request.'));
 
 		// fetch data
 		$fileInfo = $this->downloadFile($request);
-
 		if(!$fileInfo['filesize']) throw new WireFilesException('Empty synthesis file');
 
 		// copy file into page file
@@ -342,7 +419,10 @@ class ProcessTextSynthesis extends Process implements Module
 		$of = $page->of(); $page->of(false);
 		if($page->save($field)) {
 			$page->of($of);
-			return $this->completeSynthesisJob($job->id);
+			return $job->id
+				? $this->completeSynthesisJob($job->id) // job from db
+				: true // tmp job from "save + text synthesis"
+				;
 		}
 
 		return false;
