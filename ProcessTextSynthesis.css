@@ -1,0 +1,7 @@
+.uk-text-strikethrough {
+	text-decoration: line-through;
+}
+
+.ProcessTextSynthesis .AdminDataTable thead tr th:last-child {
+	width: 0;
+}

@@ -1,0 +1,189 @@
+<?php
+
+namespace ProcessWire;
+
+/**
+ * @method FieldsArray findCompatibleFields()
+ */
+
+class InputfieldTextSynthesis extends InputfieldFile
+{
+
+	public static function getModuleInfo(): array {
+		return [
+			'title' => __('Text Synthesis', __FILE__), // Module Title
+			'summary' => __('One or more file uploads (sortable)', __FILE__), // Module Summary
+			'version' => 100,
+			'icon' => 'microphone',
+			'requires' => 'ProcessTextSynthesis'
+		];
+	}
+
+	public function __construct() {
+		parent::__construct();
+		$this->label = 'TextSynthesis';
+	}
+
+	/**
+	 * Configuration settings for InputfieldFile
+	 * @return InputfieldWrapper
+	 * @throws WireException
+	 */
+	public function ___getConfigInputfields(): InputfieldWrapper {
+		$inputfields = parent::___getConfigInputfields();
+
+		$fieldset = new InputfieldFieldset();
+		$fieldset->label = __('TextSynthesis');
+		$fieldset->add([
+			'type' => 'Radios',
+			'name' => 'textSynthesisMode',
+			'label' => __('Mode'),
+			'options' => [
+				'text' => __('**Text** – use plain text for speech synthesis)'),
+				'ssml' => __('**SSML** – use ssml for speech synthesis. [More about ssml](https://cloud.google.com/text-to-speech/docs/ssml).')
+			],
+			'value' => $this->hasField->textSynthesisMode ?? ''
+		]);
+
+		$fieldset->add([
+			'type' => 'AsmSelect',
+			'name' => 'textSynthesisTextConfig',
+			'label' => __('Synthesis Fields'),
+			'description' => __('Add synthesis text fields. All fields are aligned with each other.'),
+			'options' => $this->findCompatibleFields()->explode('label|name'),
+			'value' => $this->hasField->textSynthesisTextConfig,
+			'showIf' => 'textSynthesisMode=text'
+		]);
+
+		$example = '<speak>
+	<par>
+		<media xml:id="athmo" soundLevel="+15dB" fadeInDur="8s" fadeOutDur="4s" end="text.end+2.0s">
+			<audio repeatDur="infinity" src="https://upload.wikimedia.org/wikipedia/commons/0/05/Daniel_Simion_-_Creepy_Background_Sound.ogg">
+				<desc>Creepy Background Sound</desc>
+			</audio>
+		</media>
+		<media xml:id="text">
+			<speak>
+				<p>{title}</p>
+				<p>It was just one of those things, you know.</p><p>Purely an accident.</p>
+				{myComposedField}
+				<p>My husband had, <break time="1000ms"/> been drinking, <emphasis level="reduced">and he came home about three hours late.</emphasis></p>
+				<p><emphasis level="strong">So he wasn\'t exactly in the greatest mood that night.</emphasis></p>
+				<p>And, well, Danny had scattered some of his school papers all over the room, and my husband grabbed his arm and pulled him away from them.</p>
+			</speak>
+		</media>
+	</par>
+</speak>';
+
+		$fieldset->add([
+			'type' => 'Textarea',
+			'name' => 'textSynthesisSsmlConfig',
+			'label' => __('SSML Configuration'),
+			'placeholder' => __("Please insert ssml configuration", __FILE__),
+			'notes' => __('Get a look to the example code below'),
+			'value' => $this->hasField->textSynthesisSsmlConfig ?? '',
+			'showIf' => 'textSynthesisMode=ssml'
+		]);
+
+		if(!empty($this->hasField->textSynthesisSsmlConfig)) {
+
+			/** @var Inputfield $ssmlConfigField */
+			$ssmlConfigField = $fieldset->get('textSynthesisSsmlConfig');
+
+			// validate ssml config
+			$dom = ProcessTextSynthesis::validateSsml($this->hasField->textSynthesisSsmlConfig);
+
+			if($dom instanceof \DOMDocument) $ssmlConfigField->value = $dom->saveXML();
+			elseif(is_array($dom) && count($dom)) {
+				$ssmlConfigField->error('There are some errors in the xml. Please read the explanation below.');
+				$errors = array_map(function(\LibXMLError $error) { return sprintf(
+					'Row %1$s, Column %2$s: %3$s',
+					$error->line, $error->column, $this->sanitizer->text($error->message)
+				); }, $dom);
+				$ssmlConfigField->appendMarkup = implode("<br>", $errors);
+			}
+
+			$ssmlConfigField->rows = max(5, substr_count($ssmlConfigField->value, "\n")+1);
+		}
+
+		$fieldset->add([
+			'type' => 'Markup',
+			'name' => 'textSynthesisConfigExampleSSML',
+			'label' => __('SSML Example'),
+			'description' => __("Please enter all text fields on the page that are to be used for speech synthesis here."),
+			'markupText' => '<pre style="margin:0"><code>' . htmlentities($example) . '</code></pre>',
+			'notes' => __('Wrap field names in curly brackets. You can use `wire::addHookProperty` to create your own composed fields. [More about page property hooks](https://processwire.com/api/ref/wire/add-hook-property/)'),
+			'showIf' => 'textSynthesisMode=ssml',
+			'textFormat' => Inputfield::textFormatBasic,
+			'collapsed' => Inputfield::collapsedYes
+		]);
+
+		$fieldset->add([
+			'type' => 'Textarea',
+			'name' => 'textSynthesisRequest',
+			'label' => 'Request',
+			'notes' => __('This field is formatted automatically and must contain validated json.'),
+			'value' => $this->hasField->textSynthesisRequest ?? '',
+		]);
+
+		if(!empty($this->hasField->textSynthesisRequest)) {
+
+			/** @var Inputfield $requestField */
+			$requestField = $fieldset->get('textSynthesisRequest');
+			$json = json_decode($this->hasField->textSynthesisRequest);
+
+			if(empty($json)) $requestField->error(__('Invalid json. Please check the notation.'));
+			else $requestField->value = json_encode($json, JSON_PRETTY_PRINT);
+
+			// set field height
+			$requestField->rows = max(5, substr_count($requestField->value, "\n")+1);
+		}
+
+		// Add fieldset to inputfields
+		$inputfields->insertBefore($fieldset, 'visibility');
+		return $inputfields;
+	}
+
+	/**
+	 * Add css from InputfieldFile
+	 * @param Inputfield|null $parent
+	 * @param bool $renderValueMode
+	 * @return bool
+	 */
+	public function renderReady(Inputfield $parent = null, $renderValueMode = false): bool {
+
+		$config = config();
+
+		// load inputfieldFile assets
+		$parentClassName = basename(str_replace('\\', '/', get_parent_class($this)));
+		$parentModulePath = $config->urls->$parentClassName;
+		if($parentModulePath) {
+			$config->styles->add($parentModulePath . $parentClassName . '.css');
+			$config->scripts->add($parentModulePath . $parentClassName . '.js');
+		}
+
+		// Add link to queue
+		$queuePage = pages()->findOne('template=admin, process=ProcessTextSynthesis');
+		if($queuePage->id) {
+			if($this->notes) $this->notes .= " \n";
+			$this->notes .= sprintf(
+				__('If this field is empty, the job may still be in [the queue](%s).'),
+				$queuePage->url
+			);
+		}
+
+		return parent::renderReady($parent, $renderValueMode);
+	}
+
+	/**
+	 * Find compatible synthesis input fields
+	 * @return ?FieldsArray
+	 */
+	public function ___findCompatibleFields(): ?FieldsArray {
+		$fields = fields()->getAll();
+		foreach($fields as $field) {
+			if(!($field->type instanceof FieldtypeText)) $fields->remove($field);
+		}
+		return $fields->sort('label|name');
+	}
+}

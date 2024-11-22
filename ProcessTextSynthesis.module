@@ -1,0 +1,863 @@
+<?php
+
+namespace ProcessWire;
+
+/**
+ * @method void runQueue($parallelCalls = null)
+ * @method array|\stdClass|null findSynthesisJob(array $options = [])
+ * @method string buildInput(Page $page, Field $field, string $mode = 'text')
+ * @method \stdClass buildData(Page $page, Field $field)
+ * @method \stdClass|null buildRequest(Page $page, Field $field)
+ * @method array downloadFile(\stdClass $request, array $options = [])
+ * @method string getExtensionFromMimeType($mimeType)
+ * @method string getSynthesisFilename(Page $page, Field $field, array $fileInfo)
+ */
+
+class ProcessTextSynthesis extends Process implements Module
+{
+
+	const inputfieldClass = 'InputfieldTextSynthesis';
+	const dbTableName = 'text_synthesis_queue';
+	const logFileName = 'text-synthesis';
+	const cacheNs = 'textSynthesis';
+	const SCHEMA_VERSION = 1;
+
+	public static function getModuleInfo(): array {
+		return [
+			'title' => __('Process Text Synthesis', __FILE__),
+			'summary' => __('Syntheses text fields with the Google Cloud Api Text2Speech', __FILE__),
+			'version' => 100,
+			'icon' => 'microphone',
+			'installs' => self::inputfieldClass,
+			'autoload' => true,
+
+			'permission' => 'process-text-synthesis',
+			'page' => [
+				'name' => 'text-synthesis',
+				'parent' => 'setup',
+				'title' => 'Text Synthesis',
+			],
+		];
+	}
+
+	public function init(): void {
+
+		$modules = modules();
+
+		if($modules->isInstalled('LazyCron') && $this->cronSchedule) {
+			$hookName = $this->timeFuncs[$this->cronSchedule] ?? false;
+			if($hookName) $this->addHook('LazyCron::' . $hookName, $this, 'runQueue');
+		}
+
+		// set initial schema version
+		if(!$this->schemaVersion) $this->schemaVersion = 1;
+
+		// update the database schema (if not the latest one yet)
+		if($this->schemaVersion < self::SCHEMA_VERSION) $this->updateDatabaseSchema();
+
+		// Add field setup to file fields
+		$this->addHookAfter('FieldtypeFile::getFieldSetups', $this, 'hookAddFieldSetup');
+
+		// Manipulate Fieldtype and Inputfield config
+		$this->addHookAfter('FieldtypeFile::getConfigInputfields(inputfieldClass='.self::inputfieldClass.')', $this, 'hookConfigFields');
+		$this->addHookAfter(self::inputfieldClass . '::getConfigInputfields', $this, 'hookConfigFields');
+
+		// Trigger synthesis
+		$this->addHookAfter('Pages::saveReady', $this, 'hookSynthesisFields');
+	}
+
+	public function ready(): void {
+
+		$page = page();
+
+		// add css for backend view
+		if($page->template->name === 'admin' && $page->process == $this->className) {
+			$this->config->styles->add($this->config->urls->{$this->className} . $this->className . '.css');
+		}
+	}
+
+	/**
+	 * Add a field setup for textSynthesis
+	 * @param HookEvent $event
+	 * @return void
+	 */
+	public function hookAddFieldSetup(HookEvent $event): void {
+		$event->return = array_merge($event->return, [
+			'textSynthesis' => [
+				'inputfieldClass' => self::inputfieldClass,
+				'title' => 'TextSynthesis',
+				'type' => 'file',
+				'maxFiles' => 1,
+				'unzip' => 0,
+				'outputFormat' => FieldtypeFile::outputFormatSingle,
+				'extensions' => 'wav mp3 ogg',
+				'descriptionRows' => 0,
+				'overwrite' => 1,
+				'required' => 0,
+
+				// inputfield
+				'textSynthesisMode' => 'text',
+				'textSynthesisTextConfig' => [],
+				'textSynthesisSsmlConfig' => '<speak>{title}</speak>',
+				'textSynthesisRequest' => '{"voice":{"languageCode":"de-DE","name":"de-DE-Neural2-B"},"audioConfig":{"audioEncoding":"OGG_OPUS","sampleRateHertz":48000}}'
+			]
+		]);
+	}
+
+	/**
+	 * Hide config field when inputfield is textSynthesis
+	 * @param HookEvent $event
+	 * @return void
+	 * @throws WireException
+	 */
+	public function hookConfigFields(HookEvent $event): void {
+
+		/** @var InputfieldWrapper $inputfields */
+		$inputfields = $event->return;
+
+		$hideList = [
+			// fieldtype
+			'extensions', 'maxFiles', 'outputFormat', '_exampleMulti', '_exampleSingle', 'outputString',
+
+			// inputfield
+			'overwrite', 'unzip',
+
+			// fieldsets
+			'_files_fieldset', '_file_uploads'
+		];
+
+		foreach($hideList as $fieldname) {
+			$field = $inputfields->get($fieldname);
+			if($field instanceof Inputfield) $field->set('collapsed', Inputfield::collapsedHidden);
+		}
+
+	}
+
+	/**
+	 * Find synthesis fields and call the synthesis method
+	 * @param HookEvent $event
+	 * @return void
+	 * @throws WireFilesException
+	 */
+	public function hookSynthesisFields(HookEvent $event): void {
+
+		/** @var Page $page */
+		$page = $event->argumentsByName('page');
+
+		if(!(
+			$page->id
+			&& !$page->isTrash()
+		)) return;
+
+		$synthesisFields = $page->fields->find('inputfieldClass=' . self::inputfieldClass);
+		if(!$synthesisFields->count) return;
+		foreach($synthesisFields as $synthesisField) $this->addSynthesisJob($page, $synthesisField);
+	}
+
+	public function ___execute(): array {
+		$this->modules->get('JqueryUI')->use('vex');
+		$jobs = $this->findSynthesisJob();
+		return [
+			'processInstance' => $this,
+			'jobs' => $jobs
+ 		];
+	}
+
+	public function ___executeRun(): void {
+		$id = (int) input()->urlSegment2;
+		$job = $this->findSynthesisJobById($id);
+		if(!$job) throw new WireDatabaseQueryException(__('Job not found.', __FILE__));
+
+		$this->runSynthesisJob($job);
+		$this->message(__('The content has been synthesised.'));
+		$this->session->redirect($this->page->url);
+	}
+
+	public function ___executeDelete(): void {
+		$id = (int) input()->urlSegment2;
+		$job = $this->findSynthesisJobById($id);
+		if(!$job) throw new WireDatabaseQueryException(__('Job not found.', __FILE__));
+
+		$this->deleteSynthesisJob($job->id);
+		$this->message(__('The synthesis job has been deleted.'));
+		$this->session->redirect($this->page->url);
+	}
+
+	/**
+	 * Run jobs from queue
+	 * @param HookEvent|int|null $input
+	 */
+	public function ___runQueue(HookEvent|int $input = null): int {
+		$parallelCalls = max(is_int($input) ? $input : $this->cronParallelCalls, 0);
+		$jobs = $this->findSynthesisJob([
+			'completed' => false,
+			'limit' => $parallelCalls
+		]);
+
+		// set last run time
+		wire()->cache->saveFor(self::cacheNs, 'lastRun', time());
+
+		$completed = 0;
+		foreach($jobs as $job) {
+			if($this->runSynthesisJob($job)) $completed++;
+		}
+
+		$this->runMaintenance();
+		return $completed;
+	}
+
+	/**
+	 * Run maintenance. Delete completed jobs from database
+	 * @return int
+	 */
+	public function ___runMaintenance(): int {
+
+		if(!$this->deleteCompleted) return 0;
+
+		if($this->deleteCompletedAfter > 0) {
+			$seconds = sanitizer()->int($this->deleteCompletedAfter);
+			return database()->exec("DELETE FROM ".self::dbTableName." WHERE `completed` <= NOW() - INTERVAL $seconds SECOND;");
+		} else {
+			return database()->exec("DELETE FROM ".self::dbTableName." WHERE `completed` IS NOT NULL;");
+		}
+	}
+
+	/**
+	 * Add a synthesis job to queue
+	 * @param Page $page
+	 * @param Field $field
+	 * @return bool
+	 */
+	public function addSynthesisJob(Page $page, Field $field): bool {
+
+		// build request
+		$request = $this->buildRequest($page, $field);
+		$hash = self::hash($page, $field, $request);
+
+		// check request hash
+		$pageFiles = $page->get($field->name);
+
+		// compare file hash and request hash
+		if($pageFiles->count && $pageFiles->first()->filedata('synthesis_hash') === $hash) {
+			$this->message(__('The content has already been synthesised.'));
+			return false;
+		}
+
+		// prepare statement
+		$database = database();
+		try {
+			$database->beginTransaction();
+
+			// delete
+			// the finished jobs with the same hash must be deleted so that a job can be restarted.
+			$deleteStatement = $database->prepare("
+				DELETE FROM " . self::dbTableName . " 
+				WHERE 
+					(completed IS NOT NULL AND hash=:hash) OR
+					(pages_id=:pageId AND field=:field AND hash!=:hash)
+				");
+			$deleteStatement->execute([
+				'hash' => $hash,
+				'pageId' => $page->id,
+				'field' => $field->id,
+			]);
+
+			$deletedCount = $deleteStatement->rowCount();
+
+			// insert
+			// ignore existing uncompleted jobs so that they move further up in the queue (sorted by created).
+			$insertStatement = $database->prepare("
+				INSERT IGNORE INTO " . self::dbTableName . "
+					(pages_id, field, request, hash)
+				VALUES 
+					(:pageId, :field, :request, :hash)
+			");
+
+			$result = $insertStatement->execute([
+				'pageId' => $page->id,
+				'field' => $field->id,
+				'request' => json_encode($request, JSON_UNESCAPED_UNICODE),
+				'hash' => $hash
+			]);
+
+			$insertCount = $insertStatement->rowCount();
+			if($insertCount) $this->message(
+				$deletedCount
+					? __('Replace synthesis jobs with new one')
+					: __('Add new synthesis job')
+			);
+
+			$database->commit();
+		}
+
+		catch(\Exception $e) {
+			$this->error($e->getMessage());
+			$database->rollBack();
+			$result = false;
+		}
+
+		return $result;
+	}
+
+	/**
+	 * Run a synthesis job
+	 *
+	 * @param \stdClass $job
+	 * @return bool
+	 * @throws WireException
+	 * @throws WireFilesException
+	 */
+	public function ___runSynthesisJob(\stdClass $job): bool {
+
+		/** @var Page $page */
+		$page = pages()->get($job->pages_id);
+
+		/** @var Field $field */
+		$field = fields()->get($job->field);
+
+		/** @var Pagefiles $pagefiles */
+		$pagefiles = $page->getUnformatted($field->name);
+
+		$request = json_decode($job->request);
+		if(!$request) throw new WireException(__('Cannot encode request.'));
+
+		// fetch data
+		$fileInfo = $this->downloadFile($request);
+
+		if(!$fileInfo['filesize']) throw new WireFilesException('Empty synthesis file');
+
+		// copy file into page file
+		$pagefile = new Pagefile(
+			$pagefiles,
+			$fileInfo['filename']
+		);
+		$pagefile->filedata('synthesis_hash', $job->hash);
+		$pagefile->rename($this->getSynthesisFilename($page, $field, $fileInfo));
+		$pagefile->set('created', time());
+
+		// replace file
+		$pagefiles->deleteAll()->add($pagefile);
+
+		// save field
+		$of = $page->of(); $page->of(false);
+		if($page->save($field)) {
+			$page->of($of);
+			return $this->completeSynthesisJob($job->id);
+		}
+
+		return false;
+	}
+
+	/**
+	 * Complete a synthesis job
+	 *
+	 * @param int $jobId
+	 * @return bool
+	 */
+	public function completeSynthesisJob(int $jobId): bool {
+		$statement = $this->database->prepare("UPDATE " . self::dbTableName . " SET completed = NOW() WHERE id=:id");
+		return $statement->execute(['id' => $jobId]);
+	}
+
+	/**
+	 * Delete a synthesis job
+	 *
+	 * @param int $jobId
+	 * @return bool
+	 */
+	public function deleteSynthesisJob(int $jobId): bool {
+		$statement = $this->database->prepare("DELETE FROM " . self::dbTableName . " WHERE id=:id");
+		return $statement->execute(['id' => $jobId]);
+	}
+
+	/**
+	 * Find synthesis job in queue
+	 *
+	 * Return array with found jobs
+	 * ['getOne' => true] Returns a stdClass or null
+	 *
+	 * @param array $options
+	 * @return array|\stdClass|null
+	 * @throws WireDatabaseQueryException
+	 */
+	public function ___findSynthesisJob(array $options = []): array|\stdClass|null {
+
+		$options = array_merge([
+			'completed' => true,
+			'getOne' => false,
+			'page' => null,
+			'field' => null,
+			'limit' => null,
+			'id' => 0, // implies a single return
+			'hash' => '', // implies a single return
+		], $options);
+
+		$query = new DatabaseQuerySelect();
+		$query->select('*');
+		$query->from(self::dbTableName);
+
+		// by id and hash always single item return
+		if($options['hash'] || $options['id']) $options['getOne'] = true;
+
+		// completed
+		if(!$options['completed']) $query->where('completed IS NULL');
+
+		// specific hash
+		if($options['hash']) $query->where('hash=:hash', ['hash' => $options['hash']]);
+
+		// specific id
+		elseif($options['id']) $query->where('id=:id', ['id' => (int) $options['id']]);
+
+		// specific page and or field
+		else {
+
+			// specific page
+			if($options['page']) {
+				$pageId = ($options['page'] instanceof Page)
+					? $options['page']->id
+					: intval($options['page'])
+				;
+				$query->where('pages_id=:pageId', ['pageId' => $pageId]);
+			}
+
+			// specific field
+			if($options['field']) {
+				$field = ($options['field'] instanceof Field)
+					? $options['field']->id
+					: sanitizer()->fieldName($options['field'])
+				;
+				$query->where('field=:field', ['field' => $field]);
+			}
+
+		}
+
+		// order
+		$query->orderby([
+			'completed IS NOT NULL',
+			'CASE WHEN completed IS NULL THEN created ELSE NULL END ASC',
+			'completed DESC'
+		]);
+
+		// limit
+		if(is_int($options['limit']) && $options['limit'] > 0) $query->limit($options['limit']);
+
+		$result = $query->execute()->fetchAll(\PDO::FETCH_CLASS, \stdClass::class) ?: [];
+		return $options['getOne']
+			? (count($result) ? current($result) : null)
+			: $result;
+	}
+
+	/**
+	 * Get a synthesis job by hash
+	 *
+	 * @param int $id
+	 * @return \stdClass|null
+	 */
+	public function findSynthesisJobById(int $id): \stdClass|null {
+		return $this->findSynthesisJob(['id' => $id, 'getOne' => true]);
+	}
+
+	/**
+	 * Get a synthesis job by hash
+	 *
+	 * @param string $hash
+	 * @return \stdClass|null
+	 */
+	public function findSynthesisJobByHash(string $hash): \stdClass|null {
+		return $this->findSynthesisJob(['hash' => $hash, 'getOne' => true]);
+	}
+
+	/**
+	 * @param Page $page
+	 * @param Field $field
+	 * @param string $mode
+	 * @return string
+	 * @throws \Exception
+	 */
+	public function ___buildInput(Page $page, Field $field, string $mode = 'text'): string {
+		$sanitizer = sanitizer();
+
+		/**
+		 * TEXT MODE
+		 */
+		if($mode === 'text') {
+
+			$fieldIds = $sanitizer->intArray($field->textSynthesisTextConfig);
+			$fieldNames = array_intersect_key(
+				fields()->getAllNames('id'),
+				array_flip($fieldIds)
+			);
+
+			$out = '';
+			foreach($fieldNames as $fieldName) {
+				if(!$sanitizer->valid($fieldName, 'fieldName')) continue;
+				$out .= $sanitizer->entitiesMarkdown(
+					$page->get($fieldName), [
+						'fullMarkdown' => true,
+						'allow' => ['p']
+					]
+				);
+			}
+		}
+
+		/**
+		 * SSML MODE
+		 */
+		elseif($mode === 'ssml') {
+
+			$out = $field->textSynthesisSsmlConfig ?: '';
+			preg_match_all('/{([a-zA-Z0-9_-]*?)}/u', $out, $matches, 2, 0);
+
+			foreach($matches as $match) {
+				$replace = $sanitizer->valid($match[1], 'fieldName')
+					? $page->get($match[1])
+					: null;
+				$out = str_replace('{' . $match[1] . '}', $replace ?? '', $out);
+			}
+			$out = str_replace("&", "&amp;", $out);
+
+			// validate xml
+			$dom = self::validateSsml($out, false);
+			if($dom instanceof \DOMDocument) {
+				$out = $dom->saveXML();
+			}
+
+			elseif(is_array($dom)) {
+				if(count($dom)) {
+
+					/** @var \LibXMLError $error */
+					foreach($dom as $error) {
+						$this->warning(sprintf(
+							'Row %1$s, Column %2$s: %3$s',
+							$error->line, $error->column, $this->sanitizer->text($error->message)
+						));
+					}
+				} else {
+					$this->warning(__('Unknown XML error in text synthesis field'));
+				}
+				return '';
+			}
+
+			else throw new \Exception("XML parsing failed");
+
+		}
+
+		else throw new \Exception("Unknown mode: $mode");
+
+		return $out;
+	}
+
+	/**
+	 * Get field request data
+	 * @param Page $page
+	 * @param Field $field
+	 * @return \stdClass
+	 */
+	public function ___buildData(Page $page, Field $field): \stdClass {
+		return json_decode($field->textSynthesisRequest) ?: new \stdClass();
+	}
+
+	/**
+	 * Build the request
+	 * @param Page $page
+	 * @param Field $field
+	 * @return \stdClass|null
+	 */
+	public function ___buildRequest(Page $page, Field $field): ?\stdClass {
+
+		// mode
+		$mode = $field->textSynthesisMode ?: 'text';
+
+		// prepare input
+		$input = $this->buildInput($page, $field, $mode);
+		if(!$input) {
+			$this->message(__('Nothing to synthesise.'));
+			return null;
+		}
+
+		// prepare data
+		$request = $this->buildData($page, $field);
+		$request->input = (object)[$mode => $input];
+
+		return $request;
+	}
+
+	/**
+	 * Fetch audio from google endpoints
+	 *
+	 * @param \stdClass $request
+	 * @param array $options
+	 * @return array
+	 * @throws WireFilesException
+	 */
+	public function ___downloadFile(\stdClass $request, array $options = []): array {
+		$options = array_merge($options, [
+			'timeout' => 10000,
+			'use' => 'curl',
+			'curl' => [
+				CURLOPT_RETURNTRANSFER
+			]
+		]);
+
+		$http = new WireHttp();
+		$http->setHeader('content-type', 'application/json');
+		$response = $http->post(
+			$this->getSynthesizeEndpoint(),
+			json_encode($request, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+			$options
+		);
+
+		$response = json_decode($response);
+		if(!($response instanceof \stdClass)) throw new WireException('Empty or invalid response: ' . $http->getError());
+		if(property_exists($response, 'error')) throw new WireException(
+				'Response failed: ' . $response->error->message ?? 'unknown',
+				$response->error->code ?? 0
+			);
+		if(!$response->audioContent) throw new WireException('Empty audio content');
+
+		$audioContent = base64_decode($response->audioContent);
+		if($audioContent === false) throw new WireFilesException('Base64 decoding failed');
+
+		$tmpDir = files()->tempDir();
+		$filename = tempnam($tmpDir->get(), 'synthesis_');
+		if(($filesPointer = fopen($filename, 'w')) === false) throw new WireFilesException("fopen error for filename:" . ' ' . $filename);
+		fwrite($filesPointer, $audioContent);
+		fclose($filesPointer);
+
+		$mimeType = strtolower(mime_content_type($filename));
+		$extension = $this->getExtensionFromMimeType($mimeType);
+
+		return [
+			'filename' => $filename,
+			'filesize' => filesize($filename),
+			'mimetype' => $mimeType,
+			'extension' => $extension,
+			'tmpDir' => $tmpDir,
+		];
+
+	}
+
+	/**
+	 * Get synthesis endpoint
+	 * @return string
+	 */
+	public function getSynthesizeEndpoint(): string {
+		return $this->endpoint . 'text:synthesize' . '?key=' . $this->apiKey;
+	}
+
+	/**
+	 * Get file extension from mime type
+	 *
+	 * @param $mimeType
+	 * @return string
+	 */
+	public function ___getExtensionFromMimeType($mimeType): string {
+		$mimeMap = [
+			'audio/ogg' => 'ogg',
+			'image/mp3' => 'mp3'
+		];
+		return $mimeMap[$mimeType] ?? '';
+	}
+
+	/**
+	 * Get default synthesis filename
+	 *
+	 * @param Page $page
+	 * @param Field $field
+	 * @param array $fileInfo
+	 * @return string
+	 */
+	public function ___getSynthesisFilename(Page $page, Field $field, array $fileInfo): string {
+		return sanitizer()->filename(
+			__('Synthesis Audio Content')
+			. '.'
+			. $fileInfo['extension']
+		);
+	}
+
+	/**
+	 * Install
+	 * Add field
+	 */
+	public function ___install(): void {
+
+		parent::___install();
+
+		// Create Database
+		wire()->database->exec("
+			CREATE TABLE ".self::dbTableName." (
+				`id` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+				`pages_id` INT(10) UNSIGNED NOT NULL,
+				`field` VARCHAR(250) NOT NULL,
+				`request` JSON NOT NULL,
+				`hash` CHAR(32) NOT NULL,
+				`completed` TIMESTAMP NULL,
+				`created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+				PRIMARY KEY (`id`),
+				UNIQUE INDEX `id_unique` (`id` ASC),
+				UNIQUE (hash)
+			);
+		");
+	}
+
+	/**
+	 * @return void
+	 */
+	public function ___uninstall(): void {
+
+		parent::___uninstall();
+
+		try {
+			wire()->database->exec('DROP TABLE ' . self::dbTableName);
+		} catch(\Exception $exception) {
+			$this->error($exception->getMessage());
+		}
+	}
+
+	/**
+	 * Update database schema
+	 * @see https://github.com/teppokoivula/ProcessChangelog/
+	 * from Teppo Koivula
+	 *
+	 * This method applies incremental updates until latest schema version is
+	 * reached, while also keeping schemaVersion config setting up to date.
+	 *
+	 * @throws WireException if database schema version isn't recognized
+	 */
+	public function updateDatabaseSchema(): void {
+		while ($this->schemaVersion < self::SCHEMA_VERSION) {
+
+			// increment; defaults to 1, but in some cases we may be able to skip over a specific schema update
+			$increment = 1;
+
+			// first we need to figure out which update we're going to trigger, and whether it's one that can be
+			switch ($this->schemaVersion) {
+				case 1:
+					$sql = [];
+					break;
+				default:
+					throw new WireException("Unrecognized database schema version: {$this->schemaVersion}");
+			}
+
+			// we're ready to execute this update
+			foreach ($sql as $sqlQuery) {
+				$schemaUpdated = $this->executeDatabaseSchemaUpdate($sqlQuery);
+				if (!$schemaUpdated) {
+					break;
+				}
+			}
+
+			// if update fails: log, show notice (if current user is superuser) and continue
+			if (!$schemaUpdated) {
+				$message = sprintf(
+					$this->_("Running database schema update %d failed"),
+					$this->schemaVersion
+				);
+				$this->log->save(self::logFileName, $message);
+				if ($this->user->isSuperuser()) $this->message($message);
+				return;
+			}
+
+			// all's well that ends well
+			$this->schemaVersion += $increment;
+			$configData = $this->modules->getConfig($this);
+			$configData['schemaVersion'] = $this->schemaVersion;
+			$this->modules->saveModuleConfigData($this, $configData);
+			if ($this->user->isSuperuser()) {
+				$this->message(sprintf(
+					$this->_('ProcessTextSynthesis database schema update applied (#%d).'),
+					$this->schemaVersion - 1
+				));
+			}
+		}
+	}
+
+	/**
+	 * Execute database schema update
+	 *
+	 * @param string $sql
+	 * @return bool
+	 */
+	protected function executeDatabaseSchemaUpdate(string $sql): bool {
+		try {
+			$updatedRows = $this->database->exec($sql);
+			return $updatedRows !== false;
+		} catch (\PDOException $e) {
+			if (isset($e->errorInfo[1]) && in_array($e->errorInfo[1], [1060, 1061, 1091])) {
+				// 1060 (column already exists), 1061 (duplicate key name), and 1091 (can't drop index) are errors that
+				// can be safely ignored here; the most likely issue would be that this update has already been applied
+				return true;
+			}
+			// another type of error; log, show notice (if current user is superuser) and return false
+			$message = sprintf(
+				'Error updating schema: %s (%s)',
+				$e->getMessage(),
+				$e->getCode()
+			);
+			$this->log->save(self::logFileName, $message);
+			if ($this->user->isSuperuser()) {
+				$this->error($message);
+			}
+			return false;
+		}
+	}
+
+	/**
+	 * @param string $ssml
+	 * @param bool $formatOutput
+	 * @return \DOMDocument|\LibXMLError[]
+	 */
+	public static function validateSsml(string $ssml, bool $formatOutput = true): \DOMDocument|array {
+		$dom = new \DOMDocument('1.0', 'UTF-8');
+		$dom->preserveWhiteSpace = false;
+		$dom->formatOutput = $formatOutput;
+		libxml_use_internal_errors(true);
+
+		if(!$dom->loadXML($ssml)) return libxml_get_errors();
+		return $dom;
+	}
+
+	/**
+	 *
+	 * build hash
+	 *
+	 * @param Page|int $page
+	 * @param Field|int|string $field
+	 * @param \stdClass|string $request
+	 * @return string
+	 */
+	public static function hash(Page|int $page, Field|int|string $field, \stdClass|string $request): string {
+
+		// page
+		$pageInput = $page instanceof Page
+			? $page->id
+			: intval($page)
+		;
+
+		// field
+		$fieldInput = $field instanceof Field
+			? $field->id
+			: (is_int($field)
+				? $field
+				: (string) $field
+				)
+			;
+
+		// request
+		$requestInput = $request instanceof \stdClass
+			? json_encode($request)
+			: (string) $request
+			;
+
+		return hash('md5', $pageInput . $fieldInput . $requestInput);
+	}
+
+	/**
+	 * Build a hash from a job object
+	 * @param \stdClass $job
+	 * @return string
+	 */
+	public static function hashFromJob(\stdClass $job) {
+		return self::hash($job->pages_id, $job->field, $job->request);
+	}
+}
