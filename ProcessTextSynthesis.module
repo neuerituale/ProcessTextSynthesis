@@ -150,6 +150,7 @@ class ProcessTextSynthesis extends Process implements Module
 		if(!(
 			$page->id
 			&& !$page->isTrash()
+			&& input()->post('_after_submit_action') !== 'runTextSynthesis' // skip if "save + action" is used
 		)) return;
 
 		$synthesisFields = $page->fields->find('inputfieldClass=' . self::inputfieldClass);

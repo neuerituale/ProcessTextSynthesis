@@ -50,7 +50,7 @@ class ProcessTextSynthesisConfig extends ModuleConfig {
 			'type' => 'text',
 			'name' => 'apiKey',
 			'label' => __('API Key'),
-			'description' => __('Insert your API Key.'),
+			'description' => __('Enter your API key here. If you do not yet have an API key, you can generate one in the [Credentials area](https://console.cloud.google.com/apis/credentials) of the Google Cloud Console.'),
 			'columnWidth' => 50
 		]);
 
