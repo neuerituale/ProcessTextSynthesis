@@ -2,7 +2,7 @@
 
 ## What it does
 
-The module synthesises text fields via the Google Text2Speech Api. Synthesis jobs are placed in a queue and processed one after the other. The text fields can be configured by selection or via SSML. Voice, language and speed are configured via JSON. 
+The module synthesis text fields via the Google Text2Speech Api. Synthesis jobs are placed in a queue and processed one after the other. The text fields can be configured by selection or via SSML. Voice, language and speed are configured via JSON. 
 
 The module's queue supports LazyCron, but can also be triggered manually.
 
@@ -73,3 +73,6 @@ The `ProcessTextSynthesis::runMaintenance()` method is then executed after `Proc
 
 ### Seconds after completed jobs are deleted.
 see above ...
+
+## TODO
+Add multilanguage support (`my_synthesis_field`, `my_synthesis_field_fr`, `my_synthesis_field_de`)
