@@ -81,6 +81,7 @@ class ProcessTextSynthesis extends Process implements Module
 
 	/**
 	 * Add a field setup for textSynthesis
+	 *
 	 * @param HookEvent $event
 	 * @return void
 	 */
@@ -109,6 +110,7 @@ class ProcessTextSynthesis extends Process implements Module
 
 	/**
 	 * Hide config field when inputfield is textSynthesis
+	 *
 	 * @param HookEvent $event
 	 * @return void
 	 * @throws WireException
@@ -138,6 +140,7 @@ class ProcessTextSynthesis extends Process implements Module
 
 	/**
 	 * Find synthesis fields and call the synthesis method
+	 *
 	 * @param HookEvent $event
 	 * @return void
 	 * @throws WireFilesException
@@ -241,8 +244,7 @@ class ProcessTextSynthesis extends Process implements Module
 		$job = $this->findSynthesisJobById($id);
 		if(!$job) throw new WireDatabaseQueryException(__('Job not found.', __FILE__));
 
-		$this->runSynthesisJob($job);
-		$this->message(__('The content has been synthesised.'));
+		if($this->runSynthesisJob($job)) $this->message(__('The content has been synthesised.'));
 		$this->session->redirect($this->page->url);
 	}
 
@@ -264,6 +266,7 @@ class ProcessTextSynthesis extends Process implements Module
 
 	/**
 	 * Run jobs from queue
+	 *
 	 * @param HookEvent|int|null $input
 	 */
 	public function ___runQueue(HookEvent|int $input = null): int {
@@ -287,6 +290,7 @@ class ProcessTextSynthesis extends Process implements Module
 
 	/**
 	 * Run maintenance. Delete completed jobs from database
+	 *
 	 * @return int
 	 */
 	public function ___runMaintenance(): int {
@@ -303,6 +307,7 @@ class ProcessTextSynthesis extends Process implements Module
 
 	/**
 	 * Add a synthesis job to queue
+	 *
 	 * @param Page $page
 	 * @param Field $field
 	 * @return bool
@@ -397,33 +402,38 @@ class ProcessTextSynthesis extends Process implements Module
 		/** @var Pagefiles $pagefiles */
 		$pagefiles = $page->getUnformatted($field->name);
 
-		$request = json_decode($job->request);
-		if(!$request) throw new WireException(__('Cannot decode request.'));
+		try {
+			$request = json_decode($job->request);
+			if(!$request) throw new WireException(__('Cannot decode request.'));
 
-		// fetch data
-		$fileInfo = $this->downloadFile($request);
-		if(!$fileInfo['filesize']) throw new WireFilesException('Empty synthesis file');
+			// fetch data
+			$fileInfo = $this->downloadFile($request);
+			if(!$fileInfo[ 'filesize' ]) throw new WireFilesException('Empty synthesis file');
 
-		// copy file into page file
-		$pagefile = new Pagefile(
-			$pagefiles,
-			$fileInfo['filename']
-		);
-		$pagefile->filedata('synthesis_hash', $job->hash);
-		$pagefile->rename($this->getSynthesisFilename($page, $field, $fileInfo));
-		$pagefile->set('created', time());
+			// copy file into page file
+			$pagefile = new Pagefile($pagefiles, $fileInfo[ 'filename' ]);
+			$pagefile->filedata('synthesis_hash', $job->hash);
+			$pagefile->rename($this->getSynthesisFilename($page, $field, $fileInfo));
+			$pagefile->set('created', time());
 
-		// replace file
-		$pagefiles->deleteAll()->add($pagefile);
+			// replace file
+			$pagefiles->deleteAll()->add($pagefile);
 
-		// save field
-		$of = $page->of(); $page->of(false);
-		if($page->save($field)) {
-			$page->of($of);
-			return $job->id
-				? $this->completeSynthesisJob($job->id) // job from db
-				: true // tmp job from "save + text synthesis"
-				;
+			// save field
+			$of = $page->of();
+			$page->of(false);
+			if($page->save($field)) {
+				$page->of($of);
+				return $job->id ? $this->completeSynthesisJob($job->id) // job from db
+					: true // tmp job from "save + text synthesis"
+					;
+			}
+		}
+
+		catch(\Exception $e) {
+			$this->error($e->getMessage(), Notice::login);
+			$logMessage = "Page: {$page->id}, Field: {$field->name}, Job: #{$job->id},  Error: " . $e->getMessage();
+			$this->log->save(self::logFileName, $logMessage);
 		}
 
 		return false;
@@ -630,6 +640,7 @@ class ProcessTextSynthesis extends Process implements Module
 
 	/**
 	 * Get field request data
+	 *
 	 * @param Page $page
 	 * @param Field $field
 	 * @return \stdClass
@@ -640,6 +651,7 @@ class ProcessTextSynthesis extends Process implements Module
 
 	/**
 	 * Build the request
+	 *
 	 * @param Page $page
 	 * @param Field $field
 	 * @return \stdClass|null
@@ -720,6 +732,7 @@ class ProcessTextSynthesis extends Process implements Module
 
 	/**
 	 * Get synthesis endpoint
+	 *
 	 * @return string
 	 */
 	public function getSynthesizeEndpoint(): string {
@@ -899,7 +912,6 @@ class ProcessTextSynthesis extends Process implements Module
 	}
 
 	/**
-	 *
 	 * build hash
 	 *
 	 * @param Page|int $page
@@ -935,6 +947,7 @@ class ProcessTextSynthesis extends Process implements Module
 
 	/**
 	 * Build a hash from a job object
+	 *
 	 * @param \stdClass $job
 	 * @return string
 	 */
