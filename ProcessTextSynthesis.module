@@ -582,12 +582,7 @@ class ProcessTextSynthesis extends Process implements Module
 			$out = '';
 			foreach($fieldNames as $fieldName) {
 				if(!$sanitizer->valid($fieldName, 'fieldName')) continue;
-				$out .= $sanitizer->entitiesMarkdown(
-					$page->get($fieldName), [
-						'fullMarkdown' => true,
-						'allow' => ['p']
-					]
-				);
+				$out .= $sanitizer->textarea($page->get($fieldName));
 			}
 		}
 
