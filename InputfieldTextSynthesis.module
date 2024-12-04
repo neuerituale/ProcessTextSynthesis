@@ -181,9 +181,9 @@ class InputfieldTextSynthesis extends InputfieldFile
 	 * @return ?FieldsArray
 	 */
 	public function ___findCompatibleFields(): ?FieldsArray {
-		$fields = fields()->getAll();
+		$fields = clone fields()->getAll();
 		foreach($fields as $field) {
-			if(!($field->type instanceof FieldtypeText)) $fields->remove($field);
+			if(!($field->type instanceof FieldtypeText)) $fields->removeQuietly($field);
 		}
 		return $fields->sort('label|name');
 	}
