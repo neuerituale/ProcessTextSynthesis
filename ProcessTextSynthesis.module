@@ -30,8 +30,6 @@ class ProcessTextSynthesis extends Process implements Module
 			'icon' => 'microphone',
 			'installs' => self::inputfieldClass,
 			'autoload' => true,
-
-			'permission' => 'process-text-synthesis',
 			'page' => [
 				'name' => 'text-synthesis',
 				'parent' => 'setup',

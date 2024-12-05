@@ -166,16 +166,26 @@ endif;
 $lastRun = $cache->getFor(ProcessTextSynthesis::cacheNs, 'lastRun');
 $lastRunStr = $lastRun > 0 ? $datetime->formatDate($lastRun, $config->dateFormat) : __('Never');
 
-$deleteInfo = __('Completed jobs are not deleted.');
-if($processInstance->deleteCompleted) {
-	$deleteInfo = $processInstance->deleteCompletedAfter > 0
-		? sprintf(__('Completed jobs are deleted after %d seconds'), $processInstance->deleteCompletedAfter)
-		: __('Completed jobs are deleted immediately')
-	;
-}
-
 ?>
 <div class="uk-flex uk-flex-between uk-flex-wrap uk-text-small uk-text-muted uk-margin-top">
 	<div><?= sprintf(__('Last run: %s'), $lastRunStr); ?></div>
-	<div><?= $deleteInfo; ?></div>
+
+	<?php if($processInstance->deleteCompleted) : ?>
+
+		<?php if($processInstance->deleteCompletedAfter > 0) :
+			$tooltip = sprintf(__('%d seconds'), $processInstance->deleteCompletedAfter);
+			$label = sprintf(
+				__('Completed jobs are deleted after %s'),
+				$datetime->relativeTimeStr($processInstance->deleteCompletedAfter + time(), true, false)
+			);
+			?>
+			<div uk-tooltip="title:<?= $tooltip ?>"><?= $label ?></div>
+		<?php else : ?>
+			<div><?= __('Completed jobs are deleted immediately'); ?></div>
+		<?php endif; ?>
+
+	<?php else : ?>
+		<div><?= __('Completed jobs are not deleted.'); ?></div>
+	<?php endif; ?>
+
 </div>
