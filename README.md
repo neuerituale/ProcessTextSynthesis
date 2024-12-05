@@ -26,7 +26,10 @@ The module's queue supports LazyCron, but can also be triggered manually.
    composer require nr/processtextsynthesis
    ```
 
-## Field Configuration
+## Process view
+![ProcessView](https://private-user-images.githubusercontent.com/11630948/393030336-272aa8c5-a54d-4097-a996-a9519ad8922f.png?jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3MzM0NDAwMTAsIm5iZiI6MTczMzQzOTcxMCwicGF0aCI6Ii8xMTYzMDk0OC8zOTMwMzAzMzYtMjcyYWE4YzUtYTU0ZC00MDk3LWE5OTYtYTk1MTlhZDg5MjJmLnBuZz9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNDEyMDUlMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjQxMjA1VDIzMDE1MFomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPTM4MDFiMzhhZGYwZjA4OTI4YTU1OTI4MmRkN2ExMTI1MTg1OTQwZmQxYjY3ZGMyNzFiNWMwYTYwOWI4NWEyZDEmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0In0.ac9RnkkREZwHXRMbgOy4g6dY8rTBuqBDl3WsvZxiKtU)
+
+## Field configuration
 
 `Setup` > `Fields` > `my_synthesis_field`
 
@@ -44,7 +47,7 @@ All setting options can be found in the request documentation. Note that in SSML
 <!-- default rate: 1, default pitch: 0.5 -->
 ```
 
-## Module Configuration
+## Module configuration
 
 `Modules` > `Configure` > `ProcessTextSynthesis`
 
