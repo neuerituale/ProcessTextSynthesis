@@ -1,0 +1,83 @@
+en,de,description,file,hash
+"No jobs in queue.","keine Jobs in der Warteschlange",,site/modules/ProcessTextSynthesis/views/execute.php,7b09e2dc81d41d91f2ac4ba31d09f40c
+ID,=,,site/modules/ProcessTextSynthesis/views/execute.php,b718adec73e04ce3ec720dd11a06a308
+Page,Seite,,site/modules/ProcessTextSynthesis/views/execute.php,193cfc9be3b995831c6af2fea6650e60
+Field,Feld,,site/modules/ProcessTextSynthesis/views/execute.php,6f16a5f8ff5d75ab84c018adacdfcbb7
+Mode,Modus,,site/modules/ProcessTextSynthesis/views/execute.php,650be61892bf690026089544abbd9d26
+Details,=,,site/modules/ProcessTextSynthesis/views/execute.php,3ec365dd533ddb7ef3d1c111186ce872
+Completed,Fertig,,site/modules/ProcessTextSynthesis/views/execute.php,07ca5050e697392c9ed47e6453f1453f
+Created,Erstellt,,site/modules/ProcessTextSynthesis/views/execute.php,0eceeb45861f9585dd7a97a3e36f85c6
+Actions,Aktion,,site/modules/ProcessTextSynthesis/views/execute.php,06df33001c1d7187fdd81ea1f5b277aa
+"Speech Synthesis Markup Language (SSML) is used to build the field content.","Zum Erstellen der Feldinhalte wird die Speech Synthesis Markup Language (SSML) verwendet.",,site/modules/ProcessTextSynthesis/views/execute.php,5a58f755d94c9c7879cb500afdd54901
+"All fields are lined up","Alle Felder werden aneinandergereiht",,site/modules/ProcessTextSynthesis/views/execute.php,7f8f1935f717af4482fcf4d5130b7602
+"Would you like to do this job again?","Diese Job erneut ausführen?",,site/modules/ProcessTextSynthesis/views/execute.php,5d0cd78282652a1a8535ca3f6fa4b83b
+"Execute this job again","Job erneut ausführen",,site/modules/ProcessTextSynthesis/views/execute.php,409b11b388f08e42b565e5e1b730ab6d
+"Execute this job","Job ausführen",,site/modules/ProcessTextSynthesis/views/execute.php,570701e2e348d460e265c837f9b314f7
+"Do you really want to delete this job?","Diesen Job wirklich löschen?",,site/modules/ProcessTextSynthesis/views/execute.php,3961bc60fde5f52e7b9f48843b538b20
+"Delete this job","Job löschen",,site/modules/ProcessTextSynthesis/views/execute.php,cec3ad52d94cd0cd9b501ba87e5237b0
+Never,Nie,,site/modules/ProcessTextSynthesis/views/execute.php,6e7b34fa59e1bd229b207892956dc41c
+"Last run: %s","Letzte Ausführung: %s",,site/modules/ProcessTextSynthesis/views/execute.php,853929a9816755d7f5717b2fb99ea1ba
+"%d seconds","%d Sekunden",,site/modules/ProcessTextSynthesis/views/execute.php,ca67b3b967fcda44505cfddcfcfae342
+"Completed jobs are deleted after %s","Fertige Jobs werden nach %s gelöscht",,site/modules/ProcessTextSynthesis/views/execute.php,9bfa71bfad2e42bcbef3ff4b8bb011e8
+"Completed jobs are deleted immediately","Fertige Jobs werden sofort gelöscht",,site/modules/ProcessTextSynthesis/views/execute.php,a2c09b45de520d92dcdc49ba27faf9e3
+"Completed jobs are not deleted.","Fertige Jobs werden nicht gelöscht",,site/modules/ProcessTextSynthesis/views/execute.php,9f125963c2896294cdd52fb6f4e56746
+"Text Synthesis",Textsynthese,"Module Title",site/modules/ProcessTextSynthesis/InputfieldTextSynthesis.module,998bfdd0dbc0f3c9fe21c4c961dd94d1
+"One or more file uploads (sortable)",,"Module Summary",site/modules/ProcessTextSynthesis/InputfieldTextSynthesis.module,fbf221ff984c277d7fea5d290e817767
+TextSynthesis,Textsynthese,,site/modules/ProcessTextSynthesis/InputfieldTextSynthesis.module,64169b909cf27c081400e7737bd8cdab
+Mode,Modus,,site/modules/ProcessTextSynthesis/InputfieldTextSynthesis.module,650be61892bf690026089544abbd9d26
+"**Text** – use plain text for speech synthesis","**Text** - verwende reinen Text für die Sprachsynthese",,site/modules/ProcessTextSynthesis/InputfieldTextSynthesis.module,4c537c3c0d3919a3b178c6f65563135b
+"**SSML** – use ssml for speech synthesis. [More about ssml](https://cloud.google.com/text-to-speech/docs/ssml).","**SSML** – Verwende SSML für die Sprachsynthese. [Mehr über SSML](https://cloud.google.com/text-to-speech/docs/ssml).",,site/modules/ProcessTextSynthesis/InputfieldTextSynthesis.module,f924c23616ed88bc56048f92d36b4dde
+"Synthesis Fields",Sprachsynthese-Felder,,site/modules/ProcessTextSynthesis/InputfieldTextSynthesis.module,a6cf66ad2c5a0e1f6db45ede0e3106bd
+"Add synthesis text fields. All fields are aligned with each other.","Füge Sprachsynthese-Textfelder hinzu. Alle Felder werden aneinander gereiht.",,site/modules/ProcessTextSynthesis/InputfieldTextSynthesis.module,0d2d2dad1ae9d6db023f3012e52b86e7
+"SSML Configuration","SSML Konfiguration",,site/modules/ProcessTextSynthesis/InputfieldTextSynthesis.module,50fc6ba1f12375b34f2d04461b3351f2
+"Please insert ssml configuration","SSML-Konfiguration einfügen",,site/modules/ProcessTextSynthesis/InputfieldTextSynthesis.module,f8f07df8f196f03a58bab070059ae0bd
+"Get a look to the example code below. Supported [markup tags](https://cloud.google.com/text-to-speech/docs/ssml) for the Google Cloud API.","Wirf einen Blick auf den Beispielcode unten. Unterstützte [Markup-Tags](https://cloud.google.com/text-to-speech/docs/ssml) für die Google Cloud API.",,site/modules/ProcessTextSynthesis/InputfieldTextSynthesis.module,89a6cc9c892f2241416448df54532b5a
+"SSML Example","SSML Beispiel",,site/modules/ProcessTextSynthesis/InputfieldTextSynthesis.module,e8cd63081cb14fbfc13d3bcf04a4e693
+"Please enter all text fields on the page that are to be used for speech synthesis here.","Wähle alle Textfelder, die für die Sprachsynthese verwendet werden sollen.",,site/modules/ProcessTextSynthesis/InputfieldTextSynthesis.module,d9b2b678a2716ada7eefd175a688c8f6
+"Wrap field names in curly brackets. You can use `wire::addHookProperty` to create your own composed fields. [More about page property hooks](https://processwire.com/api/ref/wire/add-hook-property/)","Feldnamen werden in geschweifte Klammern eingeschlossen. Verwende `wire::addHookProperty`, um eigenen zusammengesetzten Felder zu erstellen. [Mehr über Page-Property-Hooks](https://processwire.com/api/ref/wire/add-hook-property/)",,site/modules/ProcessTextSynthesis/InputfieldTextSynthesis.module,dfe8ae3f372cd2be93a9d0fc9223993e
+Request,=,,site/modules/ProcessTextSynthesis/InputfieldTextSynthesis.module,15c2d85f1fae22a3c3a0594510a1f611
+"Adjust voice, language and audio parameters such as pitch, encoding and sample rate.","Passe die Stimme, Sprache und weitere Audioparameter wie Tonhöhe, Kodierung und Abtastrate an.",,site/modules/ProcessTextSynthesis/InputfieldTextSynthesis.module,dc146d7820758689e657c30891eca611
+"Go to [Request Documentation](https://cloud.google.com/text-to-speech/docs/reference/rest/v1beta1/text/synthesize).
+ The `input` property is automatically generated and cannot be configured.
+ This field is formatted automatically and must contain validated json.","[Zur Request-Dokumentation] (https://cloud.google.com/text-to-speech/docs/reference/rest/v1beta1/text/synthesize).
+Die Eigenschaft `input` wird automatisch generiert und kann nicht konfiguriert werden.
+Dieses Feld wird automatisch formatiert und muss validiertes json enthalten.",,site/modules/ProcessTextSynthesis/InputfieldTextSynthesis.module,4fdbbc3454a1c6fe0a6779eccdec940e
+"Invalid json. Please check the notation.","Ungültige json. Bitte prüfe die Schreibweise.",,site/modules/ProcessTextSynthesis/InputfieldTextSynthesis.module,a1ea19e44b4999f05b92960c3cb47674
+"If this field is empty, the job may still be in [the queue](%s).","Wenn dieses Feld leer ist, befindet sich der Auftrag möglicherweise noch in [der Warteschlange](%s).",,site/modules/ProcessTextSynthesis/InputfieldTextSynthesis.module,bc2537ae456f6c4ae1811a1201c828de
+"Running database schema update %d failed","Aktualisierung des Datenbankschemas %d fehlgeschlagen",,site/modules/ProcessTextSynthesis/ProcessTextSynthesis.module,944c78b84bf934710b18134e822c9383
+"ProcessTextSynthesis database schema update applied (#%d).","ProcessTextSynthesis Aktualisierung des Datenbankschemas (#%d).",,site/modules/ProcessTextSynthesis/ProcessTextSynthesis.module,fc90dbe374e1c1c92a86b5aaec64b27c
+"Process Text Synthesis",=,,site/modules/ProcessTextSynthesis/ProcessTextSynthesis.module,076fe4d7f18e47bdbe6b7a15c65fef75
+"Syntheses text fields with the Google Cloud Api Text2Speech","Synthetisiert Textfelder mittels der Google Cloud Api Text2Speech",,site/modules/ProcessTextSynthesis/ProcessTextSynthesis.module,b4eb5f1592f9846c83c8a931b9ae6669
+"%s + Text synthesis","%s + Textsynthese",,site/modules/ProcessTextSynthesis/ProcessTextSynthesis.module,2a7ab5fda5ea2679762b8d4f6d8beb87
+"Synthesis done for field “%s”`.","Synthese für Feld „%s“ abgeschlossen.",,site/modules/ProcessTextSynthesis/ProcessTextSynthesis.module,224582377f649a9acdd172c7ba0087d7
+"Job not found.","Auftrag nicht gefunden.",,site/modules/ProcessTextSynthesis/ProcessTextSynthesis.module,2451bade68c740feba49d8af4b995bef
+"The content has been synthesised.","Der Inhalt wurde synthetisiert.",,site/modules/ProcessTextSynthesis/ProcessTextSynthesis.module,0dca40c73690851999f733580ea0b52e
+"The synthesis job has been deleted.","Der Syntheseauftrag wurde gelöscht.",,site/modules/ProcessTextSynthesis/ProcessTextSynthesis.module,6cc3f52252474979fa25a4ec2a10369a
+"The content has already been synthesised.","Der Inhalt ist bereits synthetisiert worden.",,site/modules/ProcessTextSynthesis/ProcessTextSynthesis.module,2e944bc79359d7af568670eed22b4933
+"Replace synthesis jobs with new one","Der Syntheseauftrag wurde ersetzt.",,site/modules/ProcessTextSynthesis/ProcessTextSynthesis.module,09187eb73d5ae40284d6d796111549ac
+"Add new synthesis job","Neuen Syntheseauftrag hinzufügen",,site/modules/ProcessTextSynthesis/ProcessTextSynthesis.module,f288914cb44ea2b415bfe00eda9eac0f
+"Cannot decode request.","Anfrage kann nicht dekodiert werden.",,site/modules/ProcessTextSynthesis/ProcessTextSynthesis.module,4fc73247e53ceb00b20c5a9138645dd4
+"Unknown XML error in text synthesis field","Unbekannter XML-Fehler im Textsynthesefeld",,site/modules/ProcessTextSynthesis/ProcessTextSynthesis.module,a6a7ef2b4566e55b99a099aa603ebb82
+"Nothing to synthesise.","Es gibt nichts zu synthetisieren.",,site/modules/ProcessTextSynthesis/ProcessTextSynthesis.module,2c196c9bf00532839a783ae191ab95dd
+"Synthesis Audio Content","Synthese Audio Inhalt",,site/modules/ProcessTextSynthesis/ProcessTextSynthesis.module,80226685c5a19e6b2dfae39336978f70
+"API URL",=,,site/modules/ProcessTextSynthesis/ProcessTextSynthesisConfig.php,1f37743cdcdef44b3d80e8c166c6c3ce
+"Insert the Google API URL.","Füge die Google API URL ein.",,site/modules/ProcessTextSynthesis/ProcessTextSynthesisConfig.php,2e1a91a9017ab75c8dbe6870cc21e6f7
+"API Key",=,,site/modules/ProcessTextSynthesis/ProcessTextSynthesisConfig.php,d876ff8da67c3731ae25d8335a4168b4
+"Enter your API key here. If you do not yet have an API key, you can generate one in the [Credentials area](https://console.cloud.google.com/apis/credentials) of the Google Cloud Console.","Gib hier den API-Schlüssel ein. Wenn noch kein API-Schlüssel existiert, kann er im Bereich [Credentials](https://console.cloud.google.com/apis/credentials) der Google Cloud Console generieren werden.",,site/modules/ProcessTextSynthesis/ProcessTextSynthesisConfig.php,a5b989859411ecd3f6597413cac1ef88
+LazyCron,=,,site/modules/ProcessTextSynthesis/ProcessTextSynthesisConfig.php,30d7a80090e845f560b7784238e85969
+Schedule,Zeitplan,,site/modules/ProcessTextSynthesis/ProcessTextSynthesisConfig.php,25f7347236b51a5eae4ba01a7862cb55
+"If selected, the LazyCron will process the jobs in the queue.","Wenn ausgewählt, wird LazyCron die Aufträge in der Warteschlange abarbeiten.",,site/modules/ProcessTextSynthesis/ProcessTextSynthesisConfig.php,920eed89830d0a638cce72860be537a4
+"Parallel calls","Parallele Anrufe",,site/modules/ProcessTextSynthesis/ProcessTextSynthesisConfig.php,616b871470df0ebd2c84f71fe847fd17
+"Number of job executions per cron call. 0 means all.","Anzahl der Auftragsausführungen pro Cron-Aufruf. 0 bedeutet alle.",,site/modules/ProcessTextSynthesis/ProcessTextSynthesisConfig.php,2d2af360d958b3ed5365c6f6ae4cb1c1
+"Install the LazyCron core module to automatically process the synthesis queue or use another automatic trigger to call the `ProcessTextSynthesis::runQueue()` function.","Installiere das Core-Modul LazyCron, um die Warteschlange automatisch zu verarbeiten, oder rufe die Funktion `ProcessTextSynthesis::runQueue()` auf eine andere art auf.",,site/modules/ProcessTextSynthesis/ProcessTextSynthesisConfig.php,cd92b2e5efed6d15aa7e7407f7eff083
+"Click to install LazyCron","Klicke, um LazyCron zu installieren",,site/modules/ProcessTextSynthesis/ProcessTextSynthesisConfig.php,64f4f3258f976c4081b6e4f5c865ae75
+"Should completed jobs be deleted?","Sollen abgeschlossene Aufträge gelöscht werden?",,site/modules/ProcessTextSynthesis/ProcessTextSynthesisConfig.php,af3e8b6d2b480d4ef8b8c61c4f90c130
+"Delete completed jobs","Fertige Aufträge löschen",,site/modules/ProcessTextSynthesis/ProcessTextSynthesisConfig.php,e2085eafba1007213b18f6fc9d90fb58
+"Seconds after completed jobs are deleted.","Sekunden, nachdem fertige Aufträge gelöscht wurden.",,site/modules/ProcessTextSynthesis/ProcessTextSynthesisConfig.php,365e1542f78b68bbbbe690ce96e23463
+"0 sec. immediately 
+3600 sec. 1 hour 
+86400 sec. 1 day 
+604800 sec. 1 week","0 Sek. sofort
+3600 Sek. 1 Stunde
+86400 Sek. 1 Tag
+604800 Sek. 1 Woche",,site/modules/ProcessTextSynthesis/ProcessTextSynthesisConfig.php,e44b3f86293d22644e242bcb435229bb

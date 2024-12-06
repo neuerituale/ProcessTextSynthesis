@@ -39,7 +39,7 @@ class InputfieldTextSynthesis extends InputfieldFile
 			'name' => 'textSynthesisMode',
 			'label' => __('Mode'),
 			'options' => [
-				'text' => __('**Text** – use plain text for speech synthesis)'),
+				'text' => __('**Text** – use plain text for speech synthesis'),
 				'ssml' => __('**SSML** – use ssml for speech synthesis. [More about ssml](https://cloud.google.com/text-to-speech/docs/ssml).')
 			],
 			'value' => $this->hasField->textSynthesisMode ?? ''
