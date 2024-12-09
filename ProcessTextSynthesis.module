@@ -26,7 +26,7 @@ class ProcessTextSynthesis extends Process implements Module
 		return [
 			'title' => __('Process Text Synthesis', __FILE__),
 			'summary' => __('Syntheses text fields with the Google Cloud Api Text2Speech', __FILE__),
-			'version' => 100,
+			'version' => 101,
 			'icon' => 'microphone',
 			'installs' => self::inputfieldClass,
 			'autoload' => true,
