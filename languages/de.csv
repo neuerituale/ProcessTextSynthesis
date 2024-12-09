@@ -5,11 +5,14 @@ Page,Seite,,site/modules/ProcessTextSynthesis/views/execute.php,193cfc9be3b99583
 Field,Feld,,site/modules/ProcessTextSynthesis/views/execute.php,6f16a5f8ff5d75ab84c018adacdfcbb7
 Mode,Modus,,site/modules/ProcessTextSynthesis/views/execute.php,650be61892bf690026089544abbd9d26
 Details,=,,site/modules/ProcessTextSynthesis/views/execute.php,3ec365dd533ddb7ef3d1c111186ce872
+Status,=,,site/modules/ProcessTextSynthesis/views/execute.php,ec53a8c4f07baed5d8825072c89799be
 Completed,Fertig,,site/modules/ProcessTextSynthesis/views/execute.php,07ca5050e697392c9ed47e6453f1453f
 Created,Erstellt,,site/modules/ProcessTextSynthesis/views/execute.php,0eceeb45861f9585dd7a97a3e36f85c6
 Actions,Aktion,,site/modules/ProcessTextSynthesis/views/execute.php,06df33001c1d7187fdd81ea1f5b277aa
 "Speech Synthesis Markup Language (SSML) is used to build the field content.","Zum Erstellen der Feldinhalte wird die Speech Synthesis Markup Language (SSML) verwendet.",,site/modules/ProcessTextSynthesis/views/execute.php,5a58f755d94c9c7879cb500afdd54901
 "All fields are lined up","Alle Felder werden aneinandergereiht",,site/modules/ProcessTextSynthesis/views/execute.php,7f8f1935f717af4482fcf4d5130b7602
+Error,Fehler,,site/modules/ProcessTextSynthesis/views/execute.php,902b0d55fddef6f8d651fe1035b7d4bd
+Waiting,Warten,,site/modules/ProcessTextSynthesis/views/execute.php,5706de961fb376d701be6e7762d8b09c
 "Would you like to do this job again?","Diese Job erneut ausführen?",,site/modules/ProcessTextSynthesis/views/execute.php,5d0cd78282652a1a8535ca3f6fa4b83b
 "Execute this job again","Job erneut ausführen",,site/modules/ProcessTextSynthesis/views/execute.php,409b11b388f08e42b565e5e1b730ab6d
 "Execute this job","Job ausführen",,site/modules/ProcessTextSynthesis/views/execute.php,570701e2e348d460e265c837f9b314f7
@@ -22,7 +25,7 @@ Never,Nie,,site/modules/ProcessTextSynthesis/views/execute.php,6e7b34fa59e1bd229
 "Completed jobs are deleted immediately","Fertige Jobs werden sofort gelöscht",,site/modules/ProcessTextSynthesis/views/execute.php,a2c09b45de520d92dcdc49ba27faf9e3
 "Completed jobs are not deleted.","Fertige Jobs werden nicht gelöscht",,site/modules/ProcessTextSynthesis/views/execute.php,9f125963c2896294cdd52fb6f4e56746
 "Text Synthesis",Textsynthese,"Module Title",site/modules/ProcessTextSynthesis/InputfieldTextSynthesis.module,998bfdd0dbc0f3c9fe21c4c961dd94d1
-"One or more file uploads (sortable)",,"Module Summary",site/modules/ProcessTextSynthesis/InputfieldTextSynthesis.module,fbf221ff984c277d7fea5d290e817767
+"One or more file uploads (sortable)","Ein oder mehrere Datei-Uploads (sortierbar)","Module Summary",site/modules/ProcessTextSynthesis/InputfieldTextSynthesis.module,fbf221ff984c277d7fea5d290e817767
 TextSynthesis,Textsynthese,,site/modules/ProcessTextSynthesis/InputfieldTextSynthesis.module,64169b909cf27c081400e7737bd8cdab
 Mode,Modus,,site/modules/ProcessTextSynthesis/InputfieldTextSynthesis.module,650be61892bf690026089544abbd9d26
 "**Text** – use plain text for speech synthesis","**Text** - verwende reinen Text für die Sprachsynthese",,site/modules/ProcessTextSynthesis/InputfieldTextSynthesis.module,4c537c3c0d3919a3b178c6f65563135b
@@ -57,6 +60,7 @@ Dieses Feld wird automatisch formatiert und muss validiertes json enthalten.",,s
 "Replace synthesis jobs with new one","Der Syntheseauftrag wurde ersetzt.",,site/modules/ProcessTextSynthesis/ProcessTextSynthesis.module,09187eb73d5ae40284d6d796111549ac
 "Add new synthesis job","Neuen Syntheseauftrag hinzufügen",,site/modules/ProcessTextSynthesis/ProcessTextSynthesis.module,f288914cb44ea2b415bfe00eda9eac0f
 "Cannot decode request.","Anfrage kann nicht dekodiert werden.",,site/modules/ProcessTextSynthesis/ProcessTextSynthesis.module,4fc73247e53ceb00b20c5a9138645dd4
+"Unknown error","Unbekannter Fehler",,site/modules/ProcessTextSynthesis/ProcessTextSynthesis.module,aee9784c03b80d38d3271cde2b252b8d
 "Unknown XML error in text synthesis field","Unbekannter XML-Fehler im Textsynthesefeld",,site/modules/ProcessTextSynthesis/ProcessTextSynthesis.module,a6a7ef2b4566e55b99a099aa603ebb82
 "Nothing to synthesise.","Es gibt nichts zu synthetisieren.",,site/modules/ProcessTextSynthesis/ProcessTextSynthesis.module,2c196c9bf00532839a783ae191ab95dd
 "Synthesis Audio Content","Synthese Audio Inhalt",,site/modules/ProcessTextSynthesis/ProcessTextSynthesis.module,80226685c5a19e6b2dfae39336978f70
