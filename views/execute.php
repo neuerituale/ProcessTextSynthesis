@@ -66,6 +66,7 @@ function buildConfigString(\stdClass $request): string {
 		__('Field'),
 		__('Mode'),
 		__('Details'),
+		__('Status'),
 		__('Completed'),
 		__('Created'),
 		__('Actions')
@@ -91,7 +92,9 @@ function buildConfigString(\stdClass $request): string {
 		$request = json_decode($job->request);
 		if(!$request) continue;
 
-		if($job->completed) $rowClasses[] = 'uk-text-muted uk-text-strikethrough';
+		// row status
+		if($job->error) $rowClasses[] = 'failed';
+		if($job->completed) $rowClasses[] = 'completed';
 
 		// Id
 		$row[] = '#' . $job->id;
@@ -112,6 +115,15 @@ function buildConfigString(\stdClass $request): string {
 		$configStr = buildConfigString($request);
 		$row[] = ['<span uk-tooltip="title:'.$configStr.'" uk-icon="icon: info;"></span>', 'uk-text-truncate'];
 
+		// Status
+		if(!empty($job->error)) {
+			$row[] = '<span class="uk-badge uk-padding-small uk-label-danger" uk-tooltip="title: '.$job->error.'">'.__('Error').'</span>';
+		} else if($job->completed) {
+			$row[] = '<span class="uk-badge uk-padding-small uk-label-success">'.__('Completed').'</span>';
+		} else {
+			$row[] = '<span class="uk-badge uk-padding-small">'.__('Waiting').'</span>';
+		}
+
 		// Completed
 		if(!empty($job->completed)) {
 			$triggerInfo = $datetime->formatDate($job->completed, $config->dateFormat);
@@ -128,15 +140,16 @@ function buildConfigString(\stdClass $request): string {
 		$actions = [];
 
 			// Run
-			if($job->completed) {
+			if($job->completed || $job->error) {
 				$call = "ProcessWire.confirm(
 					'".__('Would you like to do this job again?')."',
 					() => window.location.replace('./run/".$job->id."/'),
 					() => {}
 				);";
 
+				$buttonClass = $job->error ? 'uk-button-danger' : 'uk-button-success';
 				$actions[] = '<a href="javascript:' . $call . '" uk-tooltip="title:'
-					.__('Execute this job again').'" uk-icon="refresh" class="uk-icon-button uk-button-danger"></a>';
+					.__('Execute this job again').'" uk-icon="refresh" class="uk-icon-button '.$buttonClass.'"></a>';
 			} else {
 				$actions[] = '<a href="./run/'.$job->id.'/" uk-tooltip="title:'
 					.__('Execute this job').'" uk-icon="play" class="uk-icon-button uk-button-primary"></a>';

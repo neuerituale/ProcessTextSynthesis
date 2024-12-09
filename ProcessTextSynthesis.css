@@ -5,3 +5,16 @@
 .ProcessTextSynthesis .AdminDataTable thead tr th:last-child {
 	width: 0;
 }
+
+.ProcessTextSynthesis .AdminDataTable tr.completed td {
+	opacity: .8
+}
+
+.ProcessTextSynthesis .AdminDataTable tr.failed td {
+	text-decoration: line-through
+}
+
+.ProcessTextSynthesis .AdminDataTable .uk-button-success {
+	background-color: #8bccde;
+	color: white;
+}

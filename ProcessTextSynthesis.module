@@ -20,7 +20,7 @@ class ProcessTextSynthesis extends Process implements Module
 	const dbTableName = 'text_synthesis_queue';
 	const logFileName = 'text-synthesis';
 	const cacheNs = 'textSynthesis';
-	const SCHEMA_VERSION = 1;
+	const SCHEMA_VERSION = 2;
 
 	public static function getModuleInfo(): array {
 		return [
@@ -271,6 +271,7 @@ class ProcessTextSynthesis extends Process implements Module
 		$parallelCalls = max(is_int($input) ? $input : $this->cronParallelCalls, 0);
 		$jobs = $this->findSynthesisJob([
 			'completed' => false,
+			'failed' => false,
 			'limit' => $parallelCalls
 		]);
 
@@ -401,6 +402,7 @@ class ProcessTextSynthesis extends Process implements Module
 		$pagefiles = $page->getUnformatted($field->name);
 
 		try {
+
 			$request = json_decode($job->request);
 			if(!$request) throw new WireException(__('Cannot decode request.'));
 
@@ -432,6 +434,9 @@ class ProcessTextSynthesis extends Process implements Module
 			$this->error($e->getMessage(), Notice::login);
 			$logMessage = "Page: {$page->id}, Field: {$field->name}, Job: #{$job->id},  Error: " . $e->getMessage();
 			$this->log->save(self::logFileName, $logMessage);
+
+			// persists error
+			$this->errorSynthesisJob($job->id, $e->getMessage());
 		}
 
 		return false;
@@ -446,6 +451,23 @@ class ProcessTextSynthesis extends Process implements Module
 	public function completeSynthesisJob(int $jobId): bool {
 		$statement = $this->database->prepare("UPDATE " . self::dbTableName . " SET completed = NOW() WHERE id=:id");
 		return $statement->execute(['id' => $jobId]);
+	}
+
+	/**
+	 * @param int $jobId
+	 * @param string $error
+	 * @return bool
+	 */
+	public function errorSynthesisJob(int $jobId, string $error = ''): bool {
+		if(!$error) $error = __('Unknown error');
+		$statement = $this->database->prepare("UPDATE " . self::dbTableName . " SET error=:error WHERE id=:id");
+		return $statement->execute([
+			'id' => $jobId,
+			'error' => sanitizer()->selectorValueV2(
+				$error,
+				['useQuotes' => false]
+			)
+		]);
 	}
 
 	/**
@@ -473,6 +495,7 @@ class ProcessTextSynthesis extends Process implements Module
 
 		$options = array_merge([
 			'completed' => true,
+			'failed' => true,
 			'getOne' => false,
 			'page' => null,
 			'field' => null,
@@ -490,6 +513,9 @@ class ProcessTextSynthesis extends Process implements Module
 
 		// completed
 		if(!$options['completed']) $query->where('completed IS NULL');
+
+		// with error (failed)
+		if(!$options['failed']) $query->where('error = ""');
 
 		// specific hash
 		if($options['hash']) $query->where('hash=:hash', ['hash' => $options['hash']]);
@@ -523,7 +549,10 @@ class ProcessTextSynthesis extends Process implements Module
 		// order
 		$query->orderby([
 			'completed IS NOT NULL',
-			'CASE WHEN completed IS NULL THEN created ELSE NULL END ASC',
+			'error != ""',
+			'CASE 
+				WHEN completed IS NULL THEN created 
+				ELSE NULL END ASC',
 			'completed DESC'
 		]);
 
@@ -814,24 +843,16 @@ class ProcessTextSynthesis extends Process implements Module
 	public function updateDatabaseSchema(): void {
 		while ($this->schemaVersion < self::SCHEMA_VERSION) {
 
-			// increment; defaults to 1, but in some cases we may be able to skip over a specific schema update
-			$increment = 1;
+			$this->schemaVersion++;
+			$sql = match ($this->schemaVersion) {
+				2 => ["ALTER TABLE `" . self::dbTableName . "` ADD `error` TEXT NOT NULL AFTER `hash`;"],
+				default => throw new WireException("Unrecognized database schema version: {$this->schemaVersion}"),
+			};
 
-			// first we need to figure out which update we're going to trigger, and whether it's one that can be
-			switch ($this->schemaVersion) {
-				case 1:
-					$sql = [];
-					break;
-				default:
-					throw new WireException("Unrecognized database schema version: {$this->schemaVersion}");
-			}
-
-			// we're ready to execute this update
+			// execute this update
 			foreach ($sql as $sqlQuery) {
 				$schemaUpdated = $this->executeDatabaseSchemaUpdate($sqlQuery);
-				if (!$schemaUpdated) {
-					break;
-				}
+				if (!$schemaUpdated) break;
 			}
 
 			// if update fails: log, show notice (if current user is superuser) and continue
@@ -845,15 +866,14 @@ class ProcessTextSynthesis extends Process implements Module
 				return;
 			}
 
-			// all's well that ends well
-			$this->schemaVersion += $increment;
+			// success
 			$configData = $this->modules->getConfig($this);
 			$configData['schemaVersion'] = $this->schemaVersion;
 			$this->modules->saveModuleConfigData($this, $configData);
 			if ($this->user->isSuperuser()) {
 				$this->message(sprintf(
 					$this->_('ProcessTextSynthesis database schema update applied (#%d).'),
-					$this->schemaVersion - 1
+					$this->schemaVersion
 				));
 			}
 		}
