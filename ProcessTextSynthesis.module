@@ -201,6 +201,8 @@ class ProcessTextSynthesis extends Process implements Module
 
 			// build request and job
 			$request = $this->buildRequest($page, $synthesisField);
+			if(!$request) return;
+
 			$hash = self::hash($page, $synthesisField, $request);
 			$job = (object)[
 				'id' => 0,
@@ -315,6 +317,7 @@ class ProcessTextSynthesis extends Process implements Module
 
 		// build request
 		$request = $this->buildRequest($page, $field);
+		if(!$request) return false;
 		$hash = self::hash($page, $field, $request);
 
 		// check request hash
@@ -359,7 +362,7 @@ class ProcessTextSynthesis extends Process implements Module
 			$result = $insertStatement->execute([
 				'pageId' => $page->id,
 				'field' => $field->id,
-				'request' => json_encode($request, JSON_UNESCAPED_UNICODE),
+				'request' => json_encode($request),
 				'hash' => $hash
 			]);
 
@@ -652,6 +655,10 @@ class ProcessTextSynthesis extends Process implements Module
 			}
 
 			else throw new \Exception("XML parsing failed");
+
+			// check input
+			// If there is no content in the XML, an empty string is returned
+			if(empty(trim(strip_tags($out)))) return '';
 
 		}
 
