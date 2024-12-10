@@ -228,7 +228,7 @@ class ProcessTextSynthesis extends Process implements Module
 		return [
 			'processInstance' => $this,
 			'jobs' => $jobs
- 		];
+		];
 	}
 
 	/**
@@ -465,7 +465,7 @@ class ProcessTextSynthesis extends Process implements Module
 			'id' => $jobId,
 			'error' => sanitizer()->selectorValueV2(
 				$error,
-				['useQuotes' => false]
+				['useQuotes' => false, 'maxLength' => 512, 'maxBytes' => 0]
 			)
 		]);
 	}
@@ -725,9 +725,9 @@ class ProcessTextSynthesis extends Process implements Module
 		$response = json_decode($response);
 		if(!($response instanceof \stdClass)) throw new WireException('Empty or invalid response: ' . $http->getError());
 		if(property_exists($response, 'error')) throw new WireException(
-				'Response failed: ' . $response->error->message ?? 'unknown',
-				$response->error->code ?? 0
-			);
+			'Response failed: ' . $response->error->message ?? 'unknown',
+			$response->error->code ?? 0
+		);
 		if(!$response->audioContent) throw new WireException('Empty audio content');
 
 		$audioContent = base64_decode($response->audioContent);
@@ -946,14 +946,14 @@ class ProcessTextSynthesis extends Process implements Module
 			: (is_int($field)
 				? $field
 				: (string) $field
-				)
-			;
+			)
+		;
 
 		// request
 		$requestInput = $request instanceof \stdClass
 			? json_encode($request)
 			: (string) $request
-			;
+		;
 
 		return hash('md5', $pageInput . $fieldInput . $requestInput);
 	}
