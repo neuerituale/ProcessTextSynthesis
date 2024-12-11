@@ -770,14 +770,17 @@ class ProcessTextSynthesis extends Process implements Module
 
 	/**
 	 * Get file extension from mime type
+	 * @see https://cloud.google.com/text-to-speech/docs/reference/rest/v1beta1/AudioEncoding
 	 *
 	 * @param $mimeType
 	 * @return string
 	 */
 	public function ___getExtensionFromMimeType($mimeType): string {
 		$mimeMap = [
-			'audio/ogg' => 'ogg',
-			'image/mp3' => 'mp3'
+			'audio/ogg' => 'ogg', // OGG_OPUS
+			'audio/mpeg' => 'mp3', // MP3, MP3_64_KBPS
+			'audio/wav' => 'wav', //
+			'audio/x-wav' => 'wav' // LINEAR16, MULAW, ALAW
 		];
 		return $mimeMap[$mimeType] ?? '';
 	}
