@@ -13,7 +13,7 @@ class InputfieldTextSynthesis extends InputfieldFile
 		return [
 			'title' => __('Text Synthesis', __FILE__), // Module Title
 			'summary' => __('One or more file uploads (sortable)', __FILE__), // Module Summary
-			'version' => 101,
+			'version' => 102,
 			'icon' => 'microphone',
 			'requires' => 'ProcessTextSynthesis'
 		];

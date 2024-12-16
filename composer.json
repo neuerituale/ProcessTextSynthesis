@@ -1,0 +1,25 @@
+{
+    "name": "nr/processtextsynthesis",
+    "type": "pw-module",
+    "description": "Syntheses text fields with the Google Cloud Api Text2Speech",
+    "keywords": [ "processwire", "module", "accessibility" ],
+    "homepage": "https://github.com/neuerituale/ProcessTextSynthesis",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Neue Rituale",
+            "email": "code@neuerituale.com",
+            "homepage": "https://neuerituale.com/",
+            "role": "Developer"
+        }
+    ],
+    "minimum-stability": "beta",
+    "require": {
+        "hari/pw-module": "~1.0"
+    },
+    "config": {
+        "allow-plugins": {
+            "hari/pw-module": true
+        }
+    }
+}
