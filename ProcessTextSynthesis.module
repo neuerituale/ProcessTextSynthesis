@@ -963,9 +963,11 @@ class ProcessTextSynthesis extends Process implements Module
 		$dom = new \DOMDocument('1.0', 'UTF-8');
 		$dom->preserveWhiteSpace = false;
 		$dom->formatOutput = $formatOutput;
-		libxml_use_internal_errors(true);
 
-		if(!$dom->loadXML($ssml)) return libxml_get_errors();
+		libxml_use_internal_errors(true);
+		if (\PHP_VERSION_ID < 80000) libxml_disable_entity_loader(true);
+
+		if(!$dom->loadXML($ssml, LIBXML_NONET)) return libxml_get_errors();
 		return $dom;
 	}
 
