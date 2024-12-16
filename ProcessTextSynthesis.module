@@ -260,7 +260,7 @@ class ProcessTextSynthesis extends Process implements Module
 		$action = input()->urlSegment2;
 
 		if(is_numeric($action)) {
-			$id = (int) $action;
+			$id = sanitizer()->int($action);
 			$job = $this->findSynthesisJobById($id);
 			if(!$job) throw new WireDatabaseQueryException(__('Job not found.', __FILE__));
 			$this->deleteSynthesisJob($job->id);
