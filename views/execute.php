@@ -13,6 +13,7 @@ namespace ProcessWire;
  * @global Config $config
  * @global WireCache $cache
  * @global WireDateTime $datetime
+ * @global Modules $modules
  */
 
 /**
@@ -173,8 +174,6 @@ function buildConfigString(\stdClass $request): string {
 
 	echo $table->render();
 
-endif;
-
 // last run
 $lastRun = $cache->getFor(ProcessTextSynthesis::cacheNs, 'lastRun');
 $lastRunStr = $lastRun > 0 ? $datetime->formatDate($lastRun, $config->dateFormat) : __('Never');
@@ -202,3 +201,57 @@ $lastRunStr = $lastRun > 0 ? $datetime->formatDate($lastRun, $config->dateFormat
 	<?php endif; ?>
 
 </div>
+
+<?php
+
+/** @var InputfieldWrapper $wrapper */
+$wrapper = $modules->get('InputfieldWrapper');
+
+/** @var $button InputfieldButton */
+$button = $modules->get('InputfieldButton');
+$button
+	->set('name', '_clear_queue')
+	->set('id', '_clear_queue')
+	->set('value', __('Clear Queue'))
+	->set('icon', 'trash')
+	->attr(
+		'onclick',
+		"ProcessWire.confirm(
+			'".__('Want to remove all jobs?')."',
+			() => window.location.replace('./delete/all/'),
+			() => {}
+		)"
+	)
+;
+
+// Pending
+if(array_filter($jobs, fn($job) => !$job->completed && !$job->error)) {
+	$button->addActionLink(
+		"javascript:ProcessWire.confirm('".__('Want to remove pending jobs?')."',() => window.location.replace('./delete/pending/'),() => {})",
+		__('Clear pending jobs'),
+		'trash'
+	);
+}
+
+// Completed
+if(array_filter($jobs, fn($job) => $job->completed)) {
+	$button->addActionLink(
+		"javascript:ProcessWire.confirm('".__('Want to remove the completed jobs?')."',() => window.location.replace('./delete/completed/'),() => {})",
+		__('Clear completed jobs'),
+		'trash'
+	);
+}
+
+// Error
+if(array_filter($jobs, fn($job) => $job->error)) {
+	$button->addActionLink(
+		"javascript:ProcessWire.confirm('".__('Want to remove the failed jobs?')."',() => window.location.replace('./delete/error/'),() => {})",
+		__('Clear failed jobs'),
+		'trash'
+	);
+}
+
+$wrapper->add($button);
+echo $wrapper->render();
+
+endif;

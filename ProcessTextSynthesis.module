@@ -20,6 +20,7 @@ class ProcessTextSynthesis extends Process implements Module
 	const dbTableName = 'text_synthesis_queue';
 	const logFileName = 'text-synthesis';
 	const cacheNs = 'textSynthesis';
+	const allowedDeleteActions = ['all', 'pending', 'completed', 'error'];
 	const SCHEMA_VERSION = 2;
 
 	public static function getModuleInfo(): array {
@@ -253,14 +254,27 @@ class ProcessTextSynthesis extends Process implements Module
 	 *
 	 * @return void
 	 * @throws WireDatabaseQueryException
+	 * @throws WireException
 	 */
 	public function ___executeDelete(): void {
-		$id = (int) input()->urlSegment2;
-		$job = $this->findSynthesisJobById($id);
-		if(!$job) throw new WireDatabaseQueryException(__('Job not found.', __FILE__));
+		$action = input()->urlSegment2;
 
-		$this->deleteSynthesisJob($job->id);
-		$this->message(__('The synthesis job has been deleted.'));
+		if(is_numeric($action)) {
+			$id = (int) $action;
+			$job = $this->findSynthesisJobById($id);
+			if(!$job) throw new WireDatabaseQueryException(__('Job not found.', __FILE__));
+			$this->deleteSynthesisJob($job->id);
+			$this->message(__('The synthesis job has been deleted.'));
+		}
+
+		else if(in_array($action, self::allowedDeleteActions)) {
+			if($this->deleteAllSynthesisJobs($action)) {
+				$this->message(__('The synthesis jobs has been deleted.'));
+			}
+		}
+
+		else throw new WireDatabaseQueryException(__('Invalid delete action.', __FILE__));
+
 		$this->session->redirect($this->page->url);
 	}
 
@@ -293,6 +307,7 @@ class ProcessTextSynthesis extends Process implements Module
 	 * Run maintenance. Delete completed jobs from database
 	 *
 	 * @return int
+	 * @throws WireException
 	 */
 	public function ___runMaintenance(): int {
 
@@ -302,7 +317,8 @@ class ProcessTextSynthesis extends Process implements Module
 			$seconds = sanitizer()->int($this->deleteCompletedAfter);
 			return database()->exec("DELETE FROM ".self::dbTableName." WHERE `completed` <= NOW() - INTERVAL $seconds SECOND;");
 		} else {
-			return database()->exec("DELETE FROM ".self::dbTableName." WHERE `completed` IS NOT NULL;");
+			//return database()->exec("DELETE FROM ".self::dbTableName." WHERE `completed` IS NOT NULL;");
+			return $this->deleteAllSynthesisJobs('completed');
 		}
 	}
 
@@ -485,6 +501,25 @@ class ProcessTextSynthesis extends Process implements Module
 	}
 
 	/**
+	 * Delete all synthesis jobs
+	 *
+	 * @param string $filter
+	 * @return bool
+	 * @throws WireException
+	 */
+	public function deleteAllSynthesisJobs(string $filter = 'all'): bool {
+		$statement = match ($filter) {
+			'all' => $this->database->prepare("DELETE FROM " . self::dbTableName),
+			'pending' => $this->database->prepare("DELETE FROM " . self::dbTableName . " WHERE `error` = '' AND `completed` IS NULL"),
+			'completed' => $this->database->prepare("DELETE FROM " . self::dbTableName . " WHERE `completed` IS NOT NULL"),
+			'error' => $this->database->prepare("DELETE FROM " . self::dbTableName . " WHERE `error` <> ''"),
+			default => throw new WireException(__('Unknown operation'))
+		};
+
+		return $statement->execute();
+	}
+
+	/**
 	 * Find synthesis job in queue
 	 *
 	 * Return array with found jobs
@@ -503,7 +538,7 @@ class ProcessTextSynthesis extends Process implements Module
 			'page' => null,
 			'field' => null,
 			'limit' => null,
-			'id' => 0, // implies a single return
+			'id' => null, // implies a single return
 			'hash' => '', // implies a single return
 		], $options);
 
@@ -512,7 +547,7 @@ class ProcessTextSynthesis extends Process implements Module
 		$query->from(self::dbTableName);
 
 		// by id and hash always single item return
-		if($options['hash'] || $options['id']) $options['getOne'] = true;
+		if($options['hash'] || isset($options['id'])) $options['getOne'] = true;
 
 		// completed
 		if(!$options['completed']) $query->where('completed IS NULL');
@@ -524,7 +559,7 @@ class ProcessTextSynthesis extends Process implements Module
 		if($options['hash']) $query->where('hash=:hash', ['hash' => $options['hash']]);
 
 		// specific id
-		elseif($options['id']) $query->where('id=:id', ['id' => (int) $options['id']]);
+		elseif(isset($options['id'])) $query->where('id=:id', ['id' => (int) $options['id']]);
 
 		// specific page and or field
 		else {

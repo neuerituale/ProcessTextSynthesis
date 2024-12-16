@@ -74,5 +74,6 @@ Once a synthesis job has been completed, it can be deleted immediately or after 
 
 The `ProcessTextSynthesis::runMaintenance()` method is then executed after `ProcessTextSynthesis::runQueue()`.
 
-## TODO
-Add multilanguage support (`my_synthesis_field`, `my_synthesis_field_fr`, `my_synthesis_field_de`)
+## Todos & Ideas
+- Add multilanguage support (`my_synthesis_field`, `my_synthesis_field_fr`, `my_synthesis_field_de`)
+- Pronunciation database (<say-as>)
